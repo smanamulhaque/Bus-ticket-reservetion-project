@@ -112,19 +112,26 @@ void register_user() {
 
 int authenticate_user(char *logged_in_email) {
     char email[50], password[30];
-    printf("Enter Gmail: ");
-    scanf("%s", email);
-    printf("Enter Password: ");
-    scanf("%s", password);
+    int attempts = 3; // Allow up to 3 attempts for input
 
-    for (int i = 0; i < user_count; i++) {
-        if (strcmp(users[i].email, email) == 0 && strcmp(users[i].password, password) == 0) {
-            printf("Authentication successful.\n");
-            strcpy(logged_in_email, email);
-            return 1;
+    while (attempts > 0) {
+        printf("Enter Gmail: ");
+        scanf("%s", email);
+        printf("Enter Password: ");
+        scanf("%s", password);
+
+        for (int i = 0; i < user_count; i++) {
+            if (strcmp(users[i].email, email) == 0 && strcmp(users[i].password, password) == 0) {
+                printf("Authentication successful.\n");
+                strcpy(logged_in_email, email);
+                return 1;
+            }
         }
+        attempts--;
+        printf("Invalid information. You have %d attempts remaining.\n", attempts);
     }
-    printf("Authentication failed. Please check your Gmail and password.\n");
+
+    printf("Authentication failed. Please try again later.\n");
     return 0;
 }
 
@@ -136,49 +143,63 @@ void display_stations() {
 }
 
 void select_station(char *station, const char *label) {
-    display_stations();
     int choice;
-    printf("Select %s station (Enter number): ", label);
-    scanf("%d", &choice);
-    if (choice >= 1 && choice <= station_count) {
-        strcpy(station, stations[choice - 1]);
-    } else {
-        printf("Invalid choice. Please try again.\n");
-        select_station(station, label); // Retry on invalid input
+    while (1) {
+        display_stations();
+        printf("Select %s station (Enter number): ", label);
+        scanf("%d", &choice);
+
+        if (choice >= 1 && choice <= station_count) {
+            strcpy(station, stations[choice - 1]);
+            break;
+        } else {
+            printf("Invalid information. Please enter a valid station number.\n");
+        }
     }
 }
 
 void select_class(char *class, char *coach) {
     int choice;
-    printf("Select class:\n1. AC\n2. Non-AC\n");
-    printf("Enter your choice: ");
-    scanf("%d", &choice);
+    while (1) {
+        printf("Select class:\n1. AC\n2. Non-AC\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
 
-    if (choice == 1) {
-        strcpy(class, "AC");
-        printf("Select coach (A-E): ");
-        scanf("%s", coach);
-        if (coach[0] < 'A' || coach[0] > 'E') {
-            printf("Invalid coach. Please select again.\n");
-            select_class(class, coach);
+        if (choice == 1) {
+            strcpy(class, "AC");
+            printf("Select coach (A-E): ");
+            scanf("%s", coach);
+            if (coach[0] >= 'A' && coach[0] <= 'E') {
+                break;
+            } else {
+                printf("Invalid information. Coach must be between A and E.\n");
+            }
+        } else if (choice == 2) {
+            strcpy(class, "Non-AC");
+            printf("Select coach (F-M): ");
+            scanf("%s", coach);
+            if (coach[0] >= 'F' && coach[0] <= 'M') {
+                break;
+            } else {
+                printf("Invalid information. Coach must be between F and M.\n");
+            }
+        } else {
+            printf("Invalid information. Please select 1 for AC or 2 for Non-AC.\n");
         }
-    } else if (choice == 2) {
-        strcpy(class, "Non-AC");
-        printf("Select coach (F-M): ");
-        scanf("%s", coach);
-        if (coach[0] < 'F' || coach[0] > 'M') {
-            printf("Invalid coach. Please select again.\n");
-            select_class(class, coach);
-        }
-    } else {
-        printf("Invalid choice. Please try again.\n");
-        select_class(class, coach); // Retry on invalid input
     }
 }
 
 void select_seat(int *seat_number) {
-    printf("Enter seat number (1-40): ");
-    scanf("%d", seat_number);
+    while (1) {
+        printf("Enter seat number (1-40): ");
+        scanf("%d", seat_number);
+
+        if (*seat_number >= 1 && *seat_number <= 40) {
+            break;
+        } else {
+            printf("Invalid information. Please enter a seat number between 1 and 40.\n");
+        }
+    }
 }
 
 void select_date(char *date) {
@@ -226,6 +247,7 @@ int main() {
 
     char logged_in_email[50] = "";  // Track logged in user
     int choice;
+
     while (1) {
         printf("\n1. Register\n2. Login\n3. Reserve Ticket\n4. Exit\n");
         printf("Enter your choice: ");
@@ -250,7 +272,7 @@ int main() {
             case 4:
                 exit(0);
             default:
-                printf("Invalid choice.\n");
+                printf("Invalid information. Please select a valid option.\n");
         }
     }
     return 0;
