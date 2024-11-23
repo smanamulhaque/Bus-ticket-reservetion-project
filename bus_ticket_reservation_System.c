@@ -224,7 +224,7 @@ void make_reservation(char *logged_in_email) {
 int main() {
     load_users(); // Load existing users from file
 
-    char logged_in_email[50];
+    char logged_in_email[50] = "";  // Track logged in user
     int choice;
     while (1) {
         printf("\n1. Register\n2. Login\n3. Reserve Ticket\n4. Exit\n");
@@ -241,7 +241,9 @@ int main() {
                 }
                 break;
             case 3:
-                if (authenticate_user(logged_in_email)) {
+                if (strlen(logged_in_email) == 0) {
+                    printf("Please log in first.\n");
+                } else {
                     make_reservation(logged_in_email);
                 }
                 break;
