@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>  // For tolower()
 
 #define MAX_USERS 100
 #define MAX_TICKETS 100
@@ -160,12 +161,32 @@ int authenticate_user(char *logged_in_email) {
     return 0;
 }
 
+// Custom case-insensitive substring match
+int case_insensitive_strstr(const char *haystack, const char *needle) {
+    while (*haystack) {
+        const char *h = haystack;
+        const char *n = needle;
+        
+        while (*n && (tolower(*h) == tolower(*n))) {
+            h++;
+            n++;
+        }
+
+        if (!*n) {  // Found the needle
+            return 1;
+        }
+
+        haystack++;
+    }
+    return 0;  // Not found
+}
+
 // Display available stations
 void display_stations(const char *search) {
     printf("Matching Stations:\n");
     int found = 0;
     for (int i = 0; i < station_count; i++) {
-        if (strcasestr(stations[i], search)) {  // Case-insensitive partial match
+        if (case_insensitive_strstr(stations[i], search)) {  // Use custom case-insensitive match
             printf("%d. %s\n", i + 1, stations[i]);
             found = 1;
         }
@@ -178,7 +199,7 @@ void display_stations(const char *search) {
 // Check if the station is valid
 int is_valid_station(const char *station) {
     for (int i = 0; i < station_count; i++) {
-        if (strcasestr(stations[i], station)) {  // Case-insensitive match
+        if (case_insensitive_strstr(stations[i], station)) {  // Case-insensitive match
             return 1;
         }
     }
@@ -256,80 +277,90 @@ void select_date(char *date) {
 }
 
 // Check seat availability
-int check_seat_availability(char *date, char *coach, int seat_number) {
+int check_seat_availability(const char *from, const char *to, int seat_number) {
     for (int i = 0; i < ticket_count; i++) {
-        if (strcmp(tickets[i].date, date) == 0 && strcmp(tickets[i].coach, coach) == 0 && tickets[i].seat_number == seat_number) {
-            return 0; // Seat is already reserved
+        if (strcmp(tickets[i].from, from) == 0 && strcmp(tickets[i].to, to) == 0 &&
+            tickets[i].seat_number == seat_number && tickets[i].is_reserved) {
+            return 0;  // Seat already reserved
         }
     }
-    return 1; // Seat is available
+    return 1;  // Seat available
 }
 
-// Make a reservation
-void make_reservation(char *logged_in_email) {
-    if (ticket_count >= MAX_TICKETS) {
-        printf("No more tickets can be reserved.\n");
+// Reserve a ticket
+void reserve_ticket(const char *logged_in_email) {
+    Ticket ticket;
+    char from[30], to[30], class[20], coach[10], date[15];
+    int seat_number;
+
+    // Select from and to stations
+    select_station(from, "departure");
+    select_station(to, "destination");
+
+    // Ensure the departure station is different from the destination station
+    if (strcmp(from, to) == 0) {
+        printf("Departure and destination cannot be the same. Please try again.\n");
+        reserve_ticket(logged_in_email); // Retry
         return;
     }
 
-    Ticket ticket;
+    // Select class, coach, seat, and date
+    select_class(class, coach);
+    select_seat(&seat_number);
+    select_date(date);
+
+    // Check if seat is available
+    if (!check_seat_availability(from, to, seat_number)) {
+        printf("Sorry, seat number %d is already reserved. Please choose another seat.\n", seat_number);
+        reserve_ticket(logged_in_email);  // Retry
+        return;
+    }
+
+    // Save reservation
+    strcpy(ticket.from, from);
+    strcpy(ticket.to, to);
+    strcpy(ticket.class, class);
+    strcpy(ticket.coach, coach);
+    ticket.seat_number = seat_number;
+    strcpy(ticket.date, date);
+    ticket.is_reserved = 1;
     strcpy(ticket.reserved_by, logged_in_email);
-    select_station(ticket.from, "From");
-    select_station(ticket.to, "To");
-    select_class(ticket.class, ticket.coach);
-    select_seat(&ticket.seat_number);
-    select_date(ticket.date);
 
-    if (check_seat_availability(ticket.date, ticket.coach, ticket.seat_number)) {
-        tickets[ticket_count] = ticket;
-        ticket_count++;
-        save_reservation(ticket);
-        printf("Reservation successful!\n");
-    } else {
-        printf("Sorry, this seat is already reserved. Please try again.\n");
-        make_reservation(logged_in_email);  // Retry if the seat is taken
-    }
-}
-
-// Main menu
-void menu(char *logged_in_email) {
-    int choice;
-    while (1) {
-        printf("\nMain Menu:\n");
-        printf("1. Make a Reservation\n");
-        printf("2. Logout\n");
-        printf("Enter your choice: ");
-        scanf("%d", &choice);
-
-        if (choice == 1) {
-            make_reservation(logged_in_email);
-        } else if (choice == 2) {
-            printf("Logging out...\n");
-            break;
-        } else {
-            printf("Invalid choice, please try again.\n");
-        }
-    }
+    tickets[ticket_count++] = ticket;
+    save_reservation(ticket);
+    printf("Ticket reserved successfully.\n");
 }
 
 int main() {
-    load_users();
-
+    int choice;
     char logged_in_email[50];
 
-    printf("Welcome to the Train Reservation System\n");
-    int choice;
+    load_users(); // Load existing users from file
 
-    printf("1. Register\n2. Login\n");
-    printf("Enter your choice: ");
-    scanf("%d", &choice);
+    while (1) {
+        printf("\nWelcome to the Ticket Reservation System\n");
+        printf("1. Register\n2. Login\n3. Reserve Ticket\n4. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
 
-    if (choice == 1) {
-        register_user();
-    }
-
-    if (authenticate_user(logged_in_email)) {
-        menu(logged_in_email);
+        switch (choice) {
+            case 1:
+                register_user();
+                break;
+            case 2:
+                if (authenticate_user(logged_in_email)) {
+                    printf("Logged in as %s.\n", logged_in_email);
+                }
+                break;
+            case 3:
+                reserve_ticket(logged_in_email);
+                break;
+            case 4:
+                printf("Exiting system.\n");
+                return 0;
+            default:
+                printf("Invalid choice. Please try again.\n");
+        }
     }
 
     return 0;
