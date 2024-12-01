@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
-#define MAX_USERS 100
-#define MAX_TICKETS 100
+#define MAX_USERS 1144
+#define MAX_TICKETS 1144
 #define USERS_FILE "users.txt"
 #define RESERVATIONS_FILE "reservations.txt"
 
@@ -17,11 +18,12 @@ typedef struct {
     char from[30];
     char to[30];
     char coach[10];
-    char class[20];
+    char cclass[20];
     int seat_number;
     char date[15];
     int is_reserved;
-    char reserved_by[50]; // Email of the user who reserved
+    char reserved_by[50]; 
+    char fullname[50];   // Added full name for reservation
 } Ticket;
 
 User users[MAX_USERS];
@@ -31,22 +33,31 @@ int ticket_count = 0;
 
 // Predefined list of stations
 const char *stations[] = {
-    "Dhaka",
-    "Chattogram",
-    "Sylhet",
-    "Rajshahi",
-    "Khulna",
-    "Barishal",
-    "Rangpur",
-    "Mymensingh"
+    "Dhaka", "Chattogram", "Sylhet", "Rajshahi", 
+    "Khulna", "Barishal", "Rangpur", "Mymensingh"
 };
 const int station_count = sizeof(stations) / sizeof(stations[0]);
 
-// Load users from file
+// Validation Functions
+int is_valid_email(const char *email) {
+    const char *at = strchr(email, '@');
+    const char *dot = strrchr(email, '.');
+    return at && dot && at < dot;
+}
+
+int is_valid_phone(const char *phone) {
+    if (strlen(phone) != 11) return 0;
+    for (int i = 0; i < 11; i++) {
+        if (!isdigit(phone[i])) return 0;
+    }
+    return 1;
+}
+
+// File operations
 void load_users() {
     FILE *file = fopen(USERS_FILE, "r");
     if (file == NULL) {
-        printf("No users file found. Starting fresh.\n");
+        printf("\t\t\t\t\t\tNo users file found. Starting fresh.\n");
         return;
     }
     while (fscanf(file, "%s %s %[^\n]", users[user_count].email, users[user_count].password, users[user_count].fullname) != EOF) {
@@ -55,90 +66,100 @@ void load_users() {
     fclose(file);
 }
 
-// Save a new user to the file
 void save_user(User user) {
     FILE *file = fopen(USERS_FILE, "a");
     if (file == NULL) {
-        printf("Error saving user data.\n");
+        printf("\t\t\t\t\t\tError saving user data.\n");
         return;
     }
     fprintf(file, "%s %s %s\n", user.email, user.password, user.fullname);
     fclose(file);
 }
 
-// Save reservation details to file
 void save_reservation(Ticket ticket) {
     FILE *file = fopen(RESERVATIONS_FILE, "a");
     if (file == NULL) {
-        printf("Error saving reservation data.\n");
+        printf("\t\t\t\t\t\tError saving reservation data.\n");
         return;
     }
-    fprintf(file, "Reserved By: %s\nFrom: %s\nTo: %s\nClass: %s\nCoach: %s\nSeat: %d\nDate: %s\n\n",
-            ticket.reserved_by, ticket.from, ticket.to, ticket.class, ticket.coach, ticket.seat_number, ticket.date);
+    fprintf(file, "Reserved By: %s\nFull Name: %s\nFrom: %s\nTo: %s\nClass: %s\nCoach: %s\nSeat: %d\nDate: %s\n\n",
+            ticket.reserved_by, ticket.fullname, ticket.from, ticket.to, ticket.cclass, ticket.coach, ticket.seat_number, ticket.date);
     fclose(file);
 }
 
+// User registration
 void register_user() {
     if (user_count >= MAX_USERS) {
-        printf("User limit reached.\n");
+        printf("\t\t\t\t\t\tUser limit reached.\n");
         return;
     }
 
-    char email[50], password[30], fullname[50];
-    printf("Enter Gmail: ");
-    scanf("%s", email);
-    printf("Enter Password: ");
-    scanf("%s", password);
-    getchar(); // Consume newline left by scanf
-    printf("Enter Full Name: ");
-    fgets(fullname, sizeof(fullname), stdin);
-    fullname[strcspn(fullname, "\n")] = '\0'; // Remove trailing newline
+    char email_or_phone[50], password[30], fullname[50];
+    int valid_contact = 0;
 
-    // Check if the email already exists
+    while (!valid_contact) {
+        printf("\t\t\t\t\t\tGmail or Phone Number: ");
+        scanf("%s", email_or_phone);
+        if (is_valid_email(email_or_phone) || is_valid_phone(email_or_phone)) {
+            valid_contact = 1;
+        } else {
+            printf("\t\t\t\t\t\tInvalid Gmail or Phone Number. Please try again.\n");
+        }
+    }
+
+    printf("\t\t\t\t\t\tPassword: ");
+    scanf("%s", password);
+    getchar(); // Consume newline
+    printf("\t\t\t\t\t\tFull Name: ");
+    fgets(fullname, sizeof(fullname), stdin);
+    fullname[strcspn(fullname, "\n")] = '\0';
+
     for (int i = 0; i < user_count; i++) {
-        if (strcmp(users[i].email, email) == 0) {
-            printf("Email already exists. Please use a different one.\n");
+        if (strcmp(users[i].email, email_or_phone) == 0) {
+            printf("\t\t\t\t\t\tThis Gmail or Phone Number already exists.\n");
             return;
         }
     }
 
-    strcpy(users[user_count].email, email);
+    strcpy(users[user_count].email, email_or_phone);
     strcpy(users[user_count].password, password);
     strcpy(users[user_count].fullname, fullname);
     save_user(users[user_count]);
     user_count++;
-    printf("User registered successfully.\n");
+    printf("\n\t\t\t\t\t\t**User registered successfully**\n\n");
+  
 }
 
-int authenticate_user(char *logged_in_email) {
+int authenticate_user(char *logged_in_email, char *logged_in_fullname) {
     char email[50], password[30];
-    int attempts = 3; // Allow up to 3 attempts for input
+    int attempts = 3;
 
     while (attempts > 0) {
-        printf("Enter Gmail: ");
+        printf("\t\t\t\t\t\tGmail or Phone Number: ");
         scanf("%s", email);
-        printf("Enter Password: ");
+        printf("\n\t\t\t\t\t\tPassword: ");
         scanf("%s", password);
 
         for (int i = 0; i < user_count; i++) {
             if (strcmp(users[i].email, email) == 0 && strcmp(users[i].password, password) == 0) {
-                printf("Authentication successful.\n");
+                printf("\n\t\t\t\t\t\t**Authentication successful**\n");
+                printf("\n-------------------------------------------------------------------------------------------------------------------\n");
                 strcpy(logged_in_email, email);
+                strcpy(logged_in_fullname, users[i].fullname);
                 return 1;
             }
         }
         attempts--;
-        printf("Invalid information. You have %d attempts remaining.\n", attempts);
+        printf("\t\t\t\t\t\tInvalid information. %d attempts remaining.\n", attempts);
     }
-
-    printf("Authentication failed. Please try again later.\n");
+    printf("\t\t\t\t\t\tAuthentication failed.\n");
     return 0;
 }
 
 void display_stations() {
-    printf("Available Stations:\n");
+    printf("\n\t\t\t\t\t\t->Available Stations<- \n\n");
     for (int i = 0; i < station_count; i++) {
-        printf("%d. %s\n", i + 1, stations[i]);
+        printf("\t\t\t\t\t\t%d. %s\n", i + 1, stations[i]);
     }
 }
 
@@ -146,134 +167,145 @@ void select_station(char *station, const char *label) {
     int choice;
     while (1) {
         display_stations();
-        printf("Select %s station (Enter number): ", label);
+        printf("\n\t\t\t\t\t\t%s station (Enter number): ", label);
         scanf("%d", &choice);
-
+    printf("\n-------------------------------------------------------------------------------------------------------------------\n\n");
         if (choice >= 1 && choice <= station_count) {
             strcpy(station, stations[choice - 1]);
             break;
         } else {
-            printf("Invalid information. Please enter a valid station number.\n");
+            printf("\t\t\t\t\t\tInvalid station number. Try again.\n");
         }
     }
 }
 
-void select_class(char *class, char *coach) {
+void select_class(char *cclass, char *coach) {
     int choice;
     while (1) {
-        printf("Select class:\n1. AC\n2. Non-AC\n");
-        printf("Enter your choice: ");
+    	//printf("\n-------------------------------------------------------------------------------------------------------------------\n");
+        printf("\n\t\t\t\t\t\t-> Choose class <- \n\n\t\t\t\t\t\t1. AC \n\t\t\t\t\t\t2. Sleeper \n\t\t\t\t\t\t3. Non-AC \n\n\t\t\t\t\t\t Enter your choice: ");
         scanf("%d", &choice);
-
-        if (choice == 1) {
-            strcpy(class, "AC");
-            printf("Select coach (A-E): ");
-            scanf("%s", coach);
-            if (coach[0] >= 'A' && coach[0] <= 'E') {
+    printf("\n\n-------------------------------------------------------------------------------------------------------------------\n\n");
+        switch (choice) {
+            case 1:
+                strcpy(cclass, "AC");
+                printf("\t\t\t\t\t\tSelect coach (A-E): ");
+                scanf("%s", coach);
+                if (coach[0] >= 'A' && coach[0] <= 'E') return;
                 break;
-            } else {
-                printf("Invalid information. Coach must be between A and E.\n");
-            }
-        } else if (choice == 2) {
-            strcpy(class, "Non-AC");
-            printf("Select coach (F-M): ");
-            scanf("%s", coach);
-            if (coach[0] >= 'F' && coach[0] <= 'M') {
+            case 2:
+                strcpy(cclass, "Sleeper");
+                printf("\t\t\t\t\t\tSelect coach (F-J): ");
+                scanf("%s", coach);
+                if (coach[0] >= 'F' && coach[0] <= 'J') return;
                 break;
-            } else {
-                printf("Invalid information. Coach must be between F and M.\n");
-            }
-        } else {
-            printf("Invalid information. Please select 1 for AC or 2 for Non-AC.\n");
+            case 3:
+                strcpy(cclass, "Non-AC");
+                printf("\t\t\t\t\t\tSelect coach (K-Z): ");
+                scanf("%s", coach);
+                if (coach[0] >= 'K' && coach[0] <= 'Z') return;
+                break;
+            default:
+                printf("\t\t\t\t\t\tInvalid choice.\n");
         }
+        printf("\t\t\t\t\t\tInvalid coach.\n");
     }
 }
 
 void select_seat(int *seat_number) {
     while (1) {
-        printf("Enter seat number (1-40): ");
+        printf("\t\t\t\t\t\tSeat number (1-40): ");
         scanf("%d", seat_number);
-
-        if (*seat_number >= 1 && *seat_number <= 40) {
-            break;
-        } else {
-            printf("Invalid information. Please enter a seat number between 1 and 40.\n");
-        }
+        if (*seat_number >= 1 && *seat_number <= 40) break;
+        printf("\t\t\t\t\t\tInvalid seat number. Try again.\n");
     }
 }
 
 void select_date(char *date) {
-    printf("Enter journey date (DD-MM-YYYY): ");
+    printf("\t\t\t\t\t\tDate of Journey (DD-MM-YYYY): ");
     scanf("%s", date);
 }
 
 int check_seat_availability(char *date, char *coach, int seat_number) {
     for (int i = 0; i < ticket_count; i++) {
         if (strcmp(tickets[i].date, date) == 0 && strcmp(tickets[i].coach, coach) == 0 && tickets[i].seat_number == seat_number) {
-            return 0; // Seat is already reserved
+            return 0;
         }
     }
-    return 1; // Seat is available
+    return 1;
 }
 
-void make_reservation(char *logged_in_email) {
-    if (ticket_count >= MAX_TICKETS) {
-        printf("No more tickets can be reserved.\n");
-        return;
+void make_reservation(char *logged_in_email, char *logged_in_fullname) {
+    int tickets_to_reserve;
+
+    printf("\n\t\t\t\t\t\tHow many tickets do you want to buy: ");
+    scanf("%d", &tickets_to_reserve);
+    printf("\n\n-------------------------------------------------------------------------------------------------------------------\n");
+
+    for (int i = 0; i < tickets_to_reserve; i++) {
+        printf("\n\t\t\t\t\t\tReserving ticket: %d\n", i + 1);
+        printf("-------------------------------------------------------------------------------------------------------------------\n");
+
+        Ticket ticket;
+        strcpy(ticket.reserved_by, logged_in_email);
+        strcpy(ticket.fullname, logged_in_fullname);
+
+        select_station(ticket.from, "From");
+        select_station(ticket.to, "To");
+        select_class(ticket.cclass, ticket.coach);
+        select_seat(&ticket.seat_number);
+        select_date(ticket.date);
+
+        if (check_seat_availability(ticket.date, ticket.coach, ticket.seat_number)) {
+            ticket.is_reserved = 1;
+            tickets[ticket_count++] = ticket;
+            save_reservation(ticket);
+
+            char ts[30];
+            printf("\n\t\t\t\t\t\tEnter your Transaction ID: ");
+            scanf("%s", ts);
+            printf("\n\t\t\t\t\t\tPayment Successful\n");
+            printf("\t\t\t\t\t\t*** Reservation Confirmed! ***\n");
+            printf("\n\t\t\t\t\t\t[ THANK YOU ]\n");
+            printf("*******************************************[ Have A Safe Journey ]*******************************************\n\n");
+        } else {
+            printf("\t\t\t\t\t\tSeat is already reserved. Please choose another.\n");
+            i--; // Retry current ticket
+        }
     }
+}
 
-    Ticket ticket;
-    strcpy(ticket.reserved_by, logged_in_email);
-    select_station(ticket.from, "From");
-    select_station(ticket.to, "To");
-    select_class(ticket.class, ticket.coach);
-    select_seat(&ticket.seat_number);
-    select_date(ticket.date);
 
-    if (check_seat_availability(ticket.date, ticket.coach, ticket.seat_number)) {
-        ticket.is_reserved = 1;
-        tickets[ticket_count++] = ticket;
-        save_reservation(ticket);
-        printf("\nReservation successful!\n");
-        printf("Details:\nFrom: %s\nTo: %s\nClass: %s\nCoach: %s\nSeat Number: %d\nDate: %s\n",
-               ticket.from, ticket.to, ticket.class, ticket.coach, ticket.seat_number, ticket.date);
-    } else {
-        printf("Seat not available.\n");
+void main_menu() {
+    char logged_in_email[50];
+    char logged_in_fullname[50];
+    int choice;
+    load_users();
+
+    while (1) {
+        printf("########################################## | Bus Ticket Reservation System | ##########################################\n\n");
+        
+        printf("\t\t\t\t\t\t1. Register\n\t\t\t\t\t\t2. Login\n\t\t\t\t\t\t3. Exit\n\n\n\t\t\t\t\t\t");
+        printf("\n-------------------------------------------------------------------------------------------------------------------\n\n");
+        printf("\t\t\t\t\t\tEnter your choice : ");
+        scanf("%d", &choice);
+        printf("\n");
+        if (choice == 1) {
+            register_user();
+        } else if (choice == 2) {
+            if (authenticate_user(logged_in_email, logged_in_fullname)) {
+                make_reservation(logged_in_email, logged_in_fullname);
+            }
+        } else if (choice == 3) {
+            printf("\t\t\t\t\t\tExiting system.\n");
+            break;
+        } else {
+            printf("\t\t\t\t\t\tInvalid choice.\n");
+        }
     }
 }
 
 int main() {
-    load_users(); // Load existing users from file
-
-    char logged_in_email[50] = "";  // Track logged in user
-    int choice;
-
-    while (1) {
-        printf("\n1. Register\n2. Login\n3. Reserve Ticket\n4. Exit\n");
-        printf("Enter your choice: ");
-        scanf("%d", &choice);
-
-        switch (choice) {
-            case 1:
-                register_user();
-                break;
-            case 2:
-                if (authenticate_user(logged_in_email)) {
-                    printf("Logged in successfully.\n");
-                }
-                break;
-            case 3:
-                if (strlen(logged_in_email) == 0) {
-                    printf("Please log in first.\n");
-                } else {
-                    make_reservation(logged_in_email);
-                }
-                break;
-            case 4:
-                exit(0);
-            default:
-                printf("Invalid information. Please select a valid option.\n");
-        }
-    }
+    main_menu();
     return 0;
 }
