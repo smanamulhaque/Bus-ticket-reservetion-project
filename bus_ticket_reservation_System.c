@@ -98,6 +98,7 @@ void register_user() {
     int valid_contact = 0;
 
     while (!valid_contact) {
+    	printf("\n********************************************************************************************************************\n\n");
         printf("\t\t\t\t\t\tGmail or Phone Number: ");
         scanf("%s", email_or_phone);
         if (is_valid_email(email_or_phone) || is_valid_phone(email_or_phone)) {
@@ -127,7 +128,8 @@ void register_user() {
     save_user(users[user_count]);
     user_count++;
     printf("\n\t\t\t\t\t\t**User registered successfully**\n\n");
-  
+    system("cls"); // Clear screen for Windows
+
 }
 
 int authenticate_user(char *logged_in_email, char *logged_in_fullname) {
@@ -135,6 +137,7 @@ int authenticate_user(char *logged_in_email, char *logged_in_fullname) {
     int attempts = 3;
 
     while (attempts > 0) {
+    	printf("\n********************************************************************************************************************\n\n");
         printf("\t\t\t\t\t\tGmail or Phone Number: ");
         scanf("%s", email);
         printf("\n\t\t\t\t\t\tPassword: ");
@@ -143,8 +146,9 @@ int authenticate_user(char *logged_in_email, char *logged_in_fullname) {
         for (int i = 0; i < user_count; i++) {
             if (strcmp(users[i].email, email) == 0 && strcmp(users[i].password, password) == 0) {
                 printf("\n\t\t\t\t\t\t**Authentication successful**\n");
-                printf("\n-------------------------------------------------------------------------------------------------------------------\n");
-                strcpy(logged_in_email, email);
+                system("cls");
+                printf("\n*******************************************************************************************************************\n\n");
+				strcpy(logged_in_email, email);
                 strcpy(logged_in_fullname, users[i].fullname);
                 return 1;
             }
@@ -157,7 +161,8 @@ int authenticate_user(char *logged_in_email, char *logged_in_fullname) {
 }
 
 void display_stations() {
-    printf("\n\t\t\t\t\t\t->Available Stations<- \n\n");
+	printf("\n*************************************************************************************************************************\n\n");
+    printf("\n\t\t\t\t\t\t-> Available Stations <- \n\n");
     for (int i = 0; i < station_count; i++) {
         printf("\t\t\t\t\t\t%d. %s\n", i + 1, stations[i]);
     }
@@ -169,7 +174,9 @@ void select_station(char *station, const char *label) {
         display_stations();
         printf("\n\t\t\t\t\t\t%s station (Enter number): ", label);
         scanf("%d", &choice);
-    printf("\n-------------------------------------------------------------------------------------------------------------------\n\n");
+    //printf("\n\n*************************************************************************************************************************\n\n");
+    system("cls"); // Clear screen for Windows
+
         if (choice >= 1 && choice <= station_count) {
             strcpy(station, stations[choice - 1]);
             break;
@@ -183,9 +190,10 @@ void select_class(char *cclass, char *coach) {
     int choice;
     while (1) {
     	//printf("\n-------------------------------------------------------------------------------------------------------------------\n");
-        printf("\n\t\t\t\t\t\t-> Choose class <- \n\n\t\t\t\t\t\t1. AC \n\t\t\t\t\t\t2. Sleeper \n\t\t\t\t\t\t3. Non-AC \n\n\t\t\t\t\t\t Enter your choice: ");
+        printf("\n\t\t\t\t\t\t-> Choose class <- \n\n\t\t\t\t\t\t1. AC \n\t\t\t\t\t\t2. Sleeper \n\t\t\t\t\t\t3. Non-AC \n\n\t\t\t\t\t\t->Enter your choice: ");
         scanf("%d", &choice);
-    printf("\n\n-------------------------------------------------------------------------------------------------------------------\n\n");
+        system("cls");
+    printf("\n*************************************************************************************************************************\n\n");
         switch (choice) {
             case 1:
                 strcpy(cclass, "AC");
@@ -234,22 +242,32 @@ int check_seat_availability(char *date, char *coach, int seat_number) {
     }
     return 1;
 }
-
+void display_ticket(Ticket ticket) {
+    printf("\n*********************************************** [ Ticket Details ] ***********************************************\n\n\n");
+    printf("\t\t\t\t\t\tReserved By      : %s\n", ticket.fullname);
+    printf("\t\t\t\t\t\tFrom             : %s\n", ticket.from);
+    printf("\t\t\t\t\t\tTo               : %s\n", ticket.to);
+    printf("\t\t\t\t\t\tCoach            : %s\n", ticket.coach);
+    printf("\t\t\t\t\t\tClass            : %s\n", ticket.cclass);
+    printf("\t\t\t\t\t\tSeat Number      : %d\n", ticket.seat_number);
+    printf("\t\t\t\t\t\tJourney Date     : %s\n", ticket.date);
+    //printf("\n\n*******************************************************************************************************************\n");
+}
 void make_reservation(char *logged_in_email, char *logged_in_fullname) {
     int tickets_to_reserve;
-
     printf("\n\t\t\t\t\t\tHow many tickets do you want to buy: ");
     scanf("%d", &tickets_to_reserve);
-    printf("\n\n-------------------------------------------------------------------------------------------------------------------\n");
+    system("cls");
+    printf("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n");
 
+    
     for (int i = 0; i < tickets_to_reserve; i++) {
-        printf("\n\t\t\t\t\t\tReserving ticket: %d\n", i + 1);
-        printf("-------------------------------------------------------------------------------------------------------------------\n");
-
+        printf("\n\t\t\t\t\t\tReserving ticket: %d\n\n", i + 1);
+        //system("cls");
+        //printf("\n\n********************************************************************************************************************\n\n");
         Ticket ticket;
         strcpy(ticket.reserved_by, logged_in_email);
         strcpy(ticket.fullname, logged_in_fullname);
-
         select_station(ticket.from, "From");
         select_station(ticket.to, "To");
         select_class(ticket.cclass, ticket.coach);
@@ -260,22 +278,21 @@ void make_reservation(char *logged_in_email, char *logged_in_fullname) {
             ticket.is_reserved = 1;
             tickets[ticket_count++] = ticket;
             save_reservation(ticket);
+            printf("\n\n\t\t\t\t\t\t***Reservation Confirmed!***\n");
+            system("cls");
+            display_ticket(ticket); // Display full ticket details
+            printf("\n\n\t\t\t\t\t\t [ THANK YOU ] \t\t\t\t\t\t\n");
+            printf("**********************************************[ Have A Safe Journey ]**********************************************\n\n\n\n\n\n");
+            printf("\n\n");
+            //break;
+            //printf("\n-------------------------------------------------------------------------------------------------------------------\n");     
 
-            char ts[30];
-            printf("\n\t\t\t\t\t\tEnter your Transaction ID: ");
-            scanf("%s", ts);
-            printf("\n\t\t\t\t\t\tPayment Successful\n");
-            printf("\t\t\t\t\t\t*** Reservation Confirmed! ***\n");
-            printf("\n\t\t\t\t\t\t[ THANK YOU ]\n");
-            printf("*******************************************[ Have A Safe Journey ]*******************************************\n\n");
         } else {
             printf("\t\t\t\t\t\tSeat is already reserved. Please choose another.\n");
             i--; // Retry current ticket
         }
     }
 }
-
-
 void main_menu() {
     char logged_in_email[50];
     char logged_in_fullname[50];
@@ -286,10 +303,11 @@ void main_menu() {
         printf("########################################## | Bus Ticket Reservation System | ##########################################\n\n");
         
         printf("\t\t\t\t\t\t1. Register\n\t\t\t\t\t\t2. Login\n\t\t\t\t\t\t3. Exit\n\n\n\t\t\t\t\t\t");
-        printf("\n-------------------------------------------------------------------------------------------------------------------\n\n");
-        printf("\t\t\t\t\t\tEnter your choice : ");
+        printf("\n***********************************************************************************************************************\n\n");
+        printf("\t\t\t\t\t\t-> Enter your choice : ");
         scanf("%d", &choice);
-        printf("\n");
+        //printf("\n");
+        system("cls"); 
         if (choice == 1) {
             register_user();
         } else if (choice == 2) {
@@ -304,8 +322,7 @@ void main_menu() {
         }
     }
 }
-
-int main() {
+int main(){
     main_menu();
-    return 0;
+    return 0; 	
 }
